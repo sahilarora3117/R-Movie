@@ -1,0 +1,172 @@
+---
+title: "R J Component"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(Hmisc)
+library(psych)
+library(tidyr)
+```
+
+```{r}
+movie <- read.csv('movie_metadata.csv', stringsAsFactors = F)
+str(movie)
+dim(movie)
+summary(movie)
+```
+
+
+### Multiple Linear Regression - Variable Selection
+
+Time to do something serious work, I intend to predict IMDB scores from the other variables using multiple linear regression model. Because regression can't deal with missing values, I will eliminate all missing values.  
+
+```{r}
+movie$imdb_score <- as.numeric(impute(movie$imdb_score, mean))
+movie$num_critic_for_reviews <- as.numeric(impute(movie$num_critic_for_reviews, mean))
+movie$duration <- as.numeric(impute(movie$duration, mean))
+movie$director_facebook_likes <- as.numeric(impute(movie$director_facebook_likes, mean))
+movie$actor_3_facebook_likes <- as.numeric(impute(movie$actor_3_facebook_likes, mean))
+movie$actor_1_facebook_likes <- as.numeric(impute(movie$actor_1_facebook_likes, mean))
+movie$gross <- as.numeric(impute(movie$gross, mean))
+movie$cast_total_facebook_likes <- as.numeric(impute(movie$cast_total_facebook_likes, mean))
+movie$facenumber_in_poster <- as.numeric(impute(movie$facenumber_in_poster, mean))
+movie$budget <- as.numeric(impute(movie$budget, mean))
+movie$title_year <- as.numeric(impute(movie$title_year, median))
+movie$actor_2_facebook_likes <- as.numeric(impute(movie$actor_2_facebook_likes, mean))
+movie$aspect_ratio <- as.numeric(impute(movie$aspect_ratio, mean))
+```
+
+```{r}
+movie <- movie %>%
+  mutate(genres=gsub("[-]","",genres))
+movie = movie %>%
+  mutate(row = row_number()) %>%
+    separate_rows(genres, sep = '\\|') %>%
+      pivot_wider(names_from = genres, values_from = genres, values_fn = function(x) 1, values_fill = 0) %>%
+        select(-row)
+
+```
+
+```{r}
+summary(movie)
+#Action + Adventure + Fantasy + Sci-Fi + Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + Game-Show + Reality-TV  + News + Short + Film-Noir
+```
+
+Now I have got rid of all 'NA's. And I picked the following variables as potential candidates for the IMDB score predicators.
+
+* num_critic_for_reviews
+* duration
+* director_facebook_likes
+* actor_1_facebook_likes
+* gross
+* cast_total_facebook_likes
+* facenumber_in_poster
+* budget 
+* movie_facebook_likes
+
+Select a subset of numeric variables for regression modelling.
+
+```{r}
+movie_sub <- subset(movie, select = c(3, 4, 5, 8, 9, 13, 15, 22, 27, 28:53, 25))
+movie_sub
+```
+
+```{r}
+pairs.panels(movie_sub, col='red')
+```
+
+### Construct the model
+
+Split data into training and testing.
+
+```{r}
+set.seed(2017)
+train_size <- 0.8 
+train_index <- sample.int(length(movie_sub$imdb_score), length(movie_sub$imdb_score) * train_size)
+train_sample <- movie_sub[train_index,]
+test_sample <- movie_sub[-train_index,]
+```
+
+### Fit the model 
+
+I am trying out a stepwise selection of variables by backwards elimination. So I start with all candidate varibles and elimiate one at a time.
+
+```{r}
+fit <- lm(imdb_score ~ num_critic_for_reviews + duration +    director_facebook_likes + actor_1_facebook_likes + gross + cast_total_facebook_likes + facenumber_in_poster + budget + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=train_sample)
+summary(fit) 
+```
+
+I am going to eliminate the variables that has little value, - gross and budget, one at a time, and fit it again.
+
+```{r}
+fit <- lm(imdb_score ~ num_critic_for_reviews + duration + budget +   director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=train_sample)
+summary(fit) 
+```
+
+```{r}
+fit <- lm(imdb_score ~ num_critic_for_reviews + duration +   director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=train_sample)
+summary(fit) 
+```
+
+From the fitted model, I find that the model is significant since the p-value is very small. The "cast_total_facebook_likes" and "facenumber_in_poster" has negative weight. This model has multiple R-squared score of 0.143, meaning that around 14.3% of the variability can be explained by this model.
+
+Let me make a few plots of the model I arrived at.
+
+```{r}
+plot(fit)
+```
+
+If I consider IMDB scores of all movies in the dataset, it is a non-linear fit, it has a small degree of nonlinearity.
+
+This charts shows how all of the examples of residuals compare against theoretical distances from the model. I can see I have a bit problems here because some of the observations are not neatly fit the line. 
+
+This chart shows the distribution of residuals around the linear model in relation to the IMDB scores of all movies in my data. The higher the score, the less movies, and most movies are in the lower or median score range.
+
+This chart identifies all extrme values, but I don't see any extrme value has huge impact on my model. 
+
+At this point, I think this model is as good as I can get. Let's evaluate it. 
+
+```{r}
+train_sample$pred_score <- predict(fit, newdata = subset(train_sample, select=c(imdb_score, num_critic_for_reviews, duration, director_facebook_likes, actor_1_facebook_likes, cast_total_facebook_likes, facenumber_in_poster, movie_facebook_likes, Action ,Adventure, Fantasy,Thriller, Documentary ,Romance ,Animation ,Comedy ,Family ,Musical ,Mystery, Western ,Drama ,History ,Sport ,Crime ,Horror,War ,Biography ,Music, News ,Short)))
+test_sample$pred_score <- predict(fit, newdata = subset(test_sample, select=c(imdb_score, num_critic_for_reviews, duration, director_facebook_likes, actor_1_facebook_likes, cast_total_facebook_likes, facenumber_in_poster, movie_facebook_likes, Action ,Adventure, Fantasy,Thriller, Documentary ,Romance ,Animation ,Comedy ,Family ,Musical ,Mystery, Western ,Drama ,History ,Sport ,Crime ,Horror,War ,Biography ,Music, News ,Short)))
+```
+
+The theoretical model performance is defined here as R-Squared
+
+```{r}
+summary(fit)
+```
+
+Check how good the model is on the training set.
+
+```{r}
+train_corr <- round(cor(train_sample$pred_score, train_sample$imdb_score), 2)
+train_rmse <- round(sqrt(mean((train_sample$pred_score - train_sample$imdb_score)^2)))
+train_mae <- round(mean(abs(train_sample$pred_score - train_sample$imdb_score)))
+c(train_corr^2, train_rmse, train_mae)
+```
+
+The correlation between predicted score and actual score for the training set is 14.44%, which is cery close to theoretical R-Squared for the model, this is good news. However, on average, on the set of the observations I have previously seen, I am going to make 1 score difference when estimating. 
+
+Check how good the model is on the test set.
+
+```{r}
+test_corr <- round(cor(test_sample$pred_score, test_sample$imdb_score), 2)
+test_rmse <- round(sqrt(mean((test_sample$pred_score - test_sample$imdb_score)^2)))
+test_mae <- round(mean(abs(test_sample$pred_score - test_sample$imdb_score)))
+c(test_corr^2, test_rmse, test_mae)
+```
+
+```{r}
+test_corr <- round(cor(test_sample$pred_score, test_sample$imdb_score), 2)
+test_rmse <- round(sqrt(mean((test_sample$pred_score - test_sample$imdb_score)^2)))
+test_mae <- round(mean(abs(test_sample$pred_score - test_sample$imdb_score)))
+c(test_corr^2, test_rmse, test_mae)
+```
