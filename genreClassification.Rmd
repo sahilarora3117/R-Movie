@@ -264,3 +264,70 @@ accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
 print(paste('Accuracy for test', accuracy_Test))
 ```
 
+## Neural networks
+
+```{r}
+#install.packages("neuralnet")
+library(neuralnet)
+```
+
+```{r}
+movie_sub_dectre$imdb_num <- factor(x=movie_sub_dectre$imdb_cat, levels=sort(unique(movie_sub_dectre$imdb_cat)), labels = c(1,2,3))
+movie_sub_dectre$imdb_num = as.numeric(movie_sub_dectre$imdb_num)
+
+movie_idk = select(movie_sub_dectre, -c("imdb_cat"))
+```
+
+```{r}
+index <- sample(1 : nrow(movie_idk),
+                round(0.75 * nrow(movie_idk)))
+maxs <- apply(movie_idk, 2, max)
+mins <- apply(movie_idk, 2, min)
+scaled <- as.data.frame(scale(movie_idk,
+                              center = mins,
+                              scale = maxs - mins))
+aa = movie_idk[index, ]
+ab = movie_idk[-index, ]
+
+train_ <- scaled[index, ]
+test_ <- scaled[-index, ]
+
+train_$imdb_num = as.factor(aa$imdb_num)
+test_$imdb_num = as.factor(ab$imdb_num)
+```
+
+```{r}
+NN = neuralnet(imdb_num ~ num_critic_for_reviews + duration + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes, data=train_, hidden = 2)
+plot(NN)
+```
+
+```{r}
+NN = neuralnet(imdb_num ~ num_critic_for_reviews + duration + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes, data=test_, hidden = 2)
+plot(NN)
+```
+
+## Naive bayees geners only
+
+```{r}
+library("e1071")
+
+genre_sub <- subset(movie_sub_dectre, select = c(10:35, 36))
+
+index <- sample(1 : nrow(genre_sub), round(0.75 * nrow(genre_sub)))
+
+train_cl <- genre_sub[index, ]
+test_cl <- genre_sub[-index, ]
+
+set.seed(120)  
+classifier_cl <- naiveBayes(imdb_cat ~ ., data = train_cl)
+classifier_cl
+```
+
+```{r}
+y_pred <- predict(classifier_cl, newdata = test_cl)
+
+cm <- table(test_cl$imdb_cat, y_pred)
+cm
+ 
+confusionMatrix(cm)
+```
