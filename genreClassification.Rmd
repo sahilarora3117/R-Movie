@@ -331,3 +331,30 @@ cm
  
 confusionMatrix(cm)
 ```
+
+```{r}
+library(e1071)
+library(caTools)
+library(class)
+
+set.seed(123)
+train_size <- 0.8 
+train_index <- sample.int(length(movie_sub_dectre$imdb_cat), length(movie_sub_dectre$imdb_cat) * train_size)
+train_sample <- movie_sub_dectre[train_index,]
+test_sample <- movie_sub_dectre[-train_index,]
+
+train_sample <- na.omit(train_sample)
+test_sample <- na.omit(test_sample)
+
+train_cl <- train_sample[, 1:35]
+test_cl <- test_sample[, 1:35]
+
+classifier_knn <- knn(train = train_cl,
+                      test = test_cl,
+                      cl = train_sample$imdb_cat,
+                      k =100)
+cm <- table(test_sample$imdb_cat, classifier_knn)
+cm
+misClassError <- mean(classifier_knn != test_sample$imdb_cat)
+print(paste('Accuracy =', 1-misClassError))
+```
