@@ -4,6 +4,7 @@ The question of what makes a movie good has been asked for a while now. Quantify
 We aim to analyze the data and find the parameters which affect a movie’s performance. This will also help us understand how movies have changed throughout the years and across the world. We can also map those changes to historical incidents which would help us understand the consequence and affects the cinema has in our life.
 
 # Libraries used
+```
 - ggplot2
 - dplyr
 - Hmisc
@@ -12,7 +13,7 @@ We aim to analyze the data and find the parameters which affect a movie’s perf
 - e1071
 - caTools
 - class
-
+```
 ### Crititcs Reviewing the movies
 ![image](https://user-images.githubusercontent.com/20626166/142136291-cdc7fcc8-2edf-43c0-985e-b47044802edf.png)
 ### Score distribution for Movies
