@@ -214,7 +214,6 @@ test_mae <- round(mean(abs(test_sample$pred_score - test_sample$imdb_score)))
 c(test_corr^2, test_rmse, test_mae)
 ```
 
-## Decision tree
 
 ```{r}
 library(rpart)
@@ -228,6 +227,62 @@ movie_sub_dectre$imdb_cat <- as.numeric(cut2(movie_sub$imdb_score, g=3))
 movie_sub_dectre$imdb_cat <- factor(x=movie_sub_dectre$imdb_cat, levels=sort(unique(movie_sub_dectre$imdb_cat)), labels = c("Low", "Medium", "High"))
 movie_sub_dectre
 ```
+
+
+
+## Naive bayees geners only
+
+```{r}
+library("e1071")
+
+genre_sub <- subset(movie_sub_dectre, select = c(10:35, 36))
+
+index <- sample(1 : nrow(genre_sub), round(0.75 * nrow(genre_sub)))
+
+train_cl <- genre_sub[index, ]
+test_cl <- genre_sub[-index, ]
+
+set.seed(120)  
+classifier_cl <- naiveBayes(imdb_cat ~ ., data = train_cl)
+classifier_cl
+```
+
+```{r}
+y_pred <- predict(classifier_cl, newdata = test_cl)
+
+cm <- table(test_cl$imdb_cat, y_pred)
+cm
+print(paste("Accuracy", (388+41+79)/(388+19+22+357+41+32+282+41+79)))
+```
+
+
+```{r}
+library(e1071)
+library(caTools)
+library(class)
+
+set.seed(123)
+train_size <- 0.8 
+train_index <- sample.int(length(movie_sub_dectre$imdb_cat), length(movie_sub_dectre$imdb_cat) * train_size)
+train_sample <- movie_sub_dectre[train_index,]
+test_sample <- movie_sub_dectre[-train_index,]
+
+train_sample <- na.omit(train_sample)
+test_sample <- na.omit(test_sample)
+
+train_cl <- train_sample[, 1:35]
+test_cl <- test_sample[, 1:35]
+
+classifier_knn <- knn(train = train_cl,
+                      test = test_cl,
+                      cl = train_sample$imdb_cat,
+                      k =100)
+cm <- table(test_sample$imdb_cat, classifier_knn)
+cm
+misClassError <- mean(classifier_knn != test_sample$imdb_cat)
+print(paste('Accuracy =', 1-misClassError))
+```
+## Decision tree
 
 ```{r}
 set.seed(123)
@@ -299,62 +354,4 @@ test_$imdb_num = as.factor(ab$imdb_num)
 ```{r}
 NN = neuralnet(imdb_num ~ num_critic_for_reviews + duration + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes, data=train_, hidden = 2)
 plot(NN)
-```
-
-```{r}
-NN = neuralnet(imdb_num ~ num_critic_for_reviews + duration + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes, data=test_, hidden = 2)
-plot(NN)
-```
-
-## Naive bayees geners only
-
-```{r}
-library("e1071")
-
-genre_sub <- subset(movie_sub_dectre, select = c(10:35, 36))
-
-index <- sample(1 : nrow(genre_sub), round(0.75 * nrow(genre_sub)))
-
-train_cl <- genre_sub[index, ]
-test_cl <- genre_sub[-index, ]
-
-set.seed(120)  
-classifier_cl <- naiveBayes(imdb_cat ~ ., data = train_cl)
-classifier_cl
-```
-
-```{r}
-y_pred <- predict(classifier_cl, newdata = test_cl)
-
-cm <- table(test_cl$imdb_cat, y_pred)
-cm
- 
-confusionMatrix(cm)
-```
-
-```{r}
-library(e1071)
-library(caTools)
-library(class)
-
-set.seed(123)
-train_size <- 0.8 
-train_index <- sample.int(length(movie_sub_dectre$imdb_cat), length(movie_sub_dectre$imdb_cat) * train_size)
-train_sample <- movie_sub_dectre[train_index,]
-test_sample <- movie_sub_dectre[-train_index,]
-
-train_sample <- na.omit(train_sample)
-test_sample <- na.omit(test_sample)
-
-train_cl <- train_sample[, 1:35]
-test_cl <- test_sample[, 1:35]
-
-classifier_knn <- knn(train = train_cl,
-                      test = test_cl,
-                      cl = train_sample$imdb_cat,
-                      k =100)
-cm <- table(test_sample$imdb_cat, classifier_knn)
-cm
-misClassError <- mean(classifier_knn != test_sample$imdb_cat)
-print(paste('Accuracy =', 1-misClassError))
 ```
