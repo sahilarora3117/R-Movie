@@ -27,7 +27,6 @@ ggplot(aes(x = num_critic_for_reviews), data = movie) + geom_histogram(bins = 20
 summary(movie$num_critic_for_reviews)
 ```
 
-The distribution of the number of reviews is right skewed. Among these 5043 movies, the minimum number of review was 1 and the maximum number of reviews was 813. Majority of the movies received less than 200 reviews. 
 
 ```{r}
 ggplot(aes(x = imdb_score), data = movie) + geom_histogram(bins = 20, color = 'white') + ggtitle('Histogram of Scores')
@@ -166,15 +165,6 @@ Let me make a few plots of the model I arrived at.
 plot(fit)
 ```
 
-If I consider IMDB scores of all movies in the dataset, it is a non-linear fit, it has a small degree of nonlinearity.
-
-This charts shows how all of the examples of residuals compare against theoretical distances from the model. I can see I have a bit problems here because some of the observations are not neatly fit the line. 
-
-This chart shows the distribution of residuals around the linear model in relation to the IMDB scores of all movies in my data. The higher the score, the less movies, and most movies are in the lower or median score range.
-
-This chart identifies all extrme values, but I don't see any extrme value has huge impact on my model. 
-
-At this point, I think this model is as good as I can get. Let's evaluate it. 
 
 ```{r}
 train_sample$pred_score <- predict(fit, newdata = subset(train_sample, select=c(imdb_score, num_critic_for_reviews, duration, director_facebook_likes, actor_1_facebook_likes, cast_total_facebook_likes, facenumber_in_poster, movie_facebook_likes, Action ,Adventure, Fantasy,Thriller, Documentary ,Romance ,Animation ,Comedy ,Family ,Musical ,Mystery, Western ,Drama ,History ,Sport ,Crime ,Horror,War ,Biography ,Music, News ,Short)))
@@ -195,10 +185,6 @@ train_rmse <- round(sqrt(mean((train_sample$pred_score - train_sample$imdb_score
 train_mae <- round(mean(abs(train_sample$pred_score - train_sample$imdb_score)))
 c(train_corr^2, train_rmse, train_mae)
 ```
-
-The correlation between predicted score and actual score for the training set is 14.44%, which is cery close to theoretical R-Squared for the model, this is good news. However, on average, on the set of the observations I have previously seen, I am going to make 1 score difference when estimating. 
-
-Check how good the model is on the test set.
 
 ```{r}
 test_corr <- round(cor(test_sample$pred_score, test_sample$imdb_score), 2)
