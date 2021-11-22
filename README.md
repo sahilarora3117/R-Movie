@@ -1,4 +1,4 @@
-# R-Movie
+# Analysis and Prediction of Movie Performance
 The question of what makes a movie good has been asked for a while now. Quantifying the parameters on which a movie’s performance is one of the ways to predict how a movie would perform amongst others. Movie reviews are important because if they have a significant effect on the consumer thought processes, they can be used not only as a marketing tool by film production studios, but also as a predictor as to how a film will perform financially. We heavily rely on other people’s opinion and analysis to choose which movie to watch. The parameters on which the movie’s performance rely upon is dependent on duration of the movie, the critics reviews, the genre the movie is based on etc. 
 
 We aim to analyze the data and find the parameters which affect a movie’s performance. This will also help us understand how movies have changed throughout the years and across the world. We can also map those changes to historical incidents which would help us understand the consequence and affects the cinema has in our life.
