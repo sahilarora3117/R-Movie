@@ -1,11 +1,21 @@
 ---
-title: "R J Component"
+title: "Movie analysis and score prediction"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+## 19BCE1349 Anish Hemant There
+## 19BCE1260 Sahil Arora
+## 19BCE1366 Puvvadi Harsha Vardhan
+
+***
+
+***
+
+### Loading libraries
 
 ```{r}
 library(ggplot2)
@@ -15,37 +25,72 @@ library(psych)
 library(tidyr)
 ```
 
+### Reading the dataset
+
 ```{r}
 movie <- read.csv('movie_metadata.csv', stringsAsFactors = F)
 str(movie)
+```
+
+### Dimension of the dataset
+
+```{r}
 dim(movie)
+```
+
+### Summary of the dataset
+
+```{r}
 summary(movie)
 ```
+
+***
+
+### Exploratory Analysis
 
 ```{r}
 ggplot(aes(x = num_critic_for_reviews), data = movie) + geom_histogram(bins = 20, color = 'white') + ggtitle('Histogram of Number of reviews')
 summary(movie$num_critic_for_reviews)
 ```
 
+***
+
+According to this plot most movies have around 100 critic reviews   
+
+***
 
 ```{r}
 ggplot(aes(x = imdb_score), data = movie) + geom_histogram(bins = 20, color = 'white') + ggtitle('Histogram of Scores')
 summary(movie$imdb_score)
 ```
 
+***
+
+Most frequent IMDB scores for movies are in the range 5.0 to 7.5 
+
+***
 
 ```{r}
 ggplot(aes(x = title_year), data = movie) + geom_histogram(color='white') +
   ggtitle('Histogram of Title Year')
 ```
 
+***
+
+This plot tells us the number of movies produced each year. Most of the movies in this dataset are produced after the year 2000
+
+***
 
 ```{r}
 boxplot(imdb_score ~ title_year, data=movie, col='indianred')
 title("IMDB score vs Title year")
 ```
 
-### Which countries produced the most movies and which countries have the highest scores?
+***
+
+This plot tells us the variation of the IMDB scores over the years. The main point to be noted here is that there is a decrease in the average rating with increase in years
+
+***
 
 ```{r}
 country_group <- group_by(movie, country)
@@ -56,12 +101,24 @@ ggplot(aes(x = country, y = n, fill = country), data = movie_by_country) + geom_
   coord_flip() + ggtitle('Countries vs Number of Movies')
 ```
 
+***
+
+The Highest number of movies is produced by the USA
+
+***
 
 ```{r}
 ggplot(aes(x = country, y = mean_score, fill = country), data = movie_by_country) + geom_bar(stat = 'identity') + theme(legend.position = "none", axis.text=element_text(size=7)) +
   coord_flip() + ggtitle('Countries vs IMDB Scores')
 ```
 
+***
+
+This is a plot of mean IMDB score of each country. Even though USA produced the highest number of movies, Libya has the highest average score.
+
+***
+
+### Data Cleaning
 
 ```{r}
 movie$imdb_score <- as.numeric(impute(movie$imdb_score, mean))
@@ -79,6 +136,8 @@ movie$actor_2_facebook_likes <- as.numeric(impute(movie$actor_2_facebook_likes, 
 movie$aspect_ratio <- as.numeric(impute(movie$aspect_ratio, mean))
 
 ```
+
+### Separating genres into different columns
 
 ```{r}
 movie <- movie %>%
@@ -107,12 +166,15 @@ genre_count = genres %>%
                     summarise(value = sum(value==1))
 ```
 
-
-### Genre count plot
-
 ```{r}
 ggplot(genre_count, aes(x=key, y=value, fill=key)) + geom_bar(stat="identity") + theme(legend.position = "none", axis.text=element_text(size=6)) + coord_flip() + ylab("Count") + xlab("Genre") + ggtitle('Genre Counts')
 ```
+
+***
+
+Drama is the most produced genre with a count of 2586
+
+***
 
 ### Top 20 highest-rated movie
 
@@ -145,27 +207,7 @@ lang = movie %>%
 list(lang[1])
 ```
 
-```{r}
-ggplot(lang, aes(x="",y=n,fill=language))+geom_bar(width = 1,stat='identity')+coord_polar("y",start = 0)
-```
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-
-
 ### Multiple Linear Regression - Variable Selection
-
-
-```{r}
-summary(movie)
-#Action + Adventure + Fantasy + Sci-Fi + Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + Game-Show + Reality-TV  + News + Short + Film-Noir
-```
 
 
 ```{r}
@@ -207,6 +249,11 @@ summary(fit)
 plot(fit)
 ```
 
+***
+
+From the residuals vs fitted graph we can see that there are quite a few outliers at the end and overall the dispersion is uneven. From the Normal Q-Q plot we can see that there is a huge deviation at the start.
+ 
+***
 
 ```{r}
 train_sample$pred_score <- predict(fit, newdata = subset(train_sample, select=c(imdb_score, num_critic_for_reviews, duration, director_facebook_likes, actor_1_facebook_likes, cast_total_facebook_likes, facenumber_in_poster, movie_facebook_likes, Action ,Adventure, Fantasy,Thriller, Documentary ,Romance ,Animation ,Comedy ,Family ,Musical ,Mystery, Western ,Drama ,History ,Sport ,Crime ,Horror,War ,Biography ,Music, News ,Short)))
@@ -217,27 +264,31 @@ test_sample$pred_score <- predict(fit, newdata = subset(test_sample, select=c(im
 summary(fit)
 ```
 
+### Evaluating on train set
+
 ```{r}
 train_corr <- round(cor(train_sample$pred_score, train_sample$imdb_score), 2)
-train_rmse <- round(sqrt(mean((train_sample$pred_score - train_sample$imdb_score)^2)))
-train_mae <- round(mean(abs(train_sample$pred_score - train_sample$imdb_score)))
+train_rmse <- round(sqrt(mean((train_sample$pred_score - train_sample$imdb_score)^2)), 2)
+train_mae <- round(mean(abs(train_sample$pred_score - train_sample$imdb_score)), 2)
 c(train_corr^2, train_rmse, train_mae)
 ```
 
-```{r}
-test_corr <- round(cor(test_sample$pred_score, test_sample$imdb_score), 2)
-test_rmse <- round(sqrt(mean((test_sample$pred_score - test_sample$imdb_score)^2)))
-test_mae <- round(mean(abs(test_sample$pred_score - test_sample$imdb_score)))
-c(test_corr^2, test_rmse, test_mae)
-```
+### Evaluating on test set
 
 ```{r}
 test_corr <- round(cor(test_sample$pred_score, test_sample$imdb_score), 2)
-test_rmse <- round(sqrt(mean((test_sample$pred_score - test_sample$imdb_score)^2)))
-test_mae <- round(mean(abs(test_sample$pred_score - test_sample$imdb_score)))
+test_rmse <- round(sqrt(mean((test_sample$pred_score - test_sample$imdb_score)^2)), 2)
+test_mae <- round(mean(abs(test_sample$pred_score - test_sample$imdb_score)), 2)
 c(test_corr^2, test_rmse, test_mae)
 ```
 
+***
+
+For the rest of the models we have categorized the movies into three different categories (Low, Medium and High)
+
+***
+
+### Decision Tree
 
 ```{r}
 library(rpart)
@@ -252,13 +303,37 @@ movie_sub_dectre$imdb_cat <- factor(x=movie_sub_dectre$imdb_cat, levels=sort(uni
 movie_sub_dectre
 ```
 
-
-
-## Naive bayees geners only
+```{r}
+set.seed(123)
+train_size <- 0.8 
+train_index <- sample.int(length(movie_sub_dectre$imdb_cat), length(movie_sub_dectre$imdb_cat) * train_size)
+train_sample <- movie_sub_dectre[train_index,]
+test_sample <- movie_sub_dectre[-train_index,]
+```
 
 ```{r}
-library("e1071")
+fit <- rpart(imdb_cat ~ num_critic_for_reviews + duration + budget + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=train_sample, method = 'class')
+rpart.plot(fit)
+```
 
+```{r}
+predicted <- predict(fit, test_sample, type = 'class')
+table_mat <- table(test_sample$imdb_cat, predicted)
+table_mat
+```
+
+```{r}
+accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+print(paste('Accuracy for test', accuracy_Test))
+```
+
+## Naive bayees using geners only
+
+```{r}
+library(e1071)
+```
+
+```{r}
 genre_sub <- subset(movie_sub_dectre, select = c(10:35, 36))
 
 index <- sample(1 : nrow(genre_sub), round(0.75 * nrow(genre_sub)))
@@ -276,15 +351,17 @@ y_pred <- predict(classifier_cl, newdata = test_cl)
 
 cm <- table(test_cl$imdb_cat, y_pred)
 cm
-print(paste("Accuracy", (388+41+79)/(388+19+22+357+41+32+282+41+79)))
+print(paste("Accuracy", sum(diag(cm)) / sum(cm)))
 ```
 
+### KNN
 
 ```{r}
-library(e1071)
 library(caTools)
 library(class)
+```
 
+```{r}
 set.seed(123)
 train_size <- 0.8 
 train_index <- sample.int(length(movie_sub_dectre$imdb_cat), length(movie_sub_dectre$imdb_cat) * train_size)
@@ -306,47 +383,10 @@ cm
 misClassError <- mean(classifier_knn != test_sample$imdb_cat)
 print(paste('Accuracy =', 1-misClassError))
 ```
-## Decision tree
-
-```{r}
-set.seed(123)
-train_size <- 0.8 
-train_index <- sample.int(length(movie_sub_dectre$imdb_cat), length(movie_sub_dectre$imdb_cat) * train_size)
-train_sample <- movie_sub_dectre[train_index,]
-test_sample <- movie_sub_dectre[-train_index,]
-```
-
-```{r}
-fit <- rpart(imdb_cat ~ num_critic_for_reviews + duration + budget + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=train_sample, method = 'class')
-rpart.plot(fit)
-```
-
-```{r}
-fit2 <- rpart(imdb_cat ~ num_critic_for_reviews + duration + budget + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=test_sample, method = 'class')
-
-predicted <- predict(fit2, test_sample, type = 'class')
-table_mat <- table(test_sample$imdb_cat, predicted)
-table_mat
-```
-
-```{r}
-table(test_sample$imdb_cat)
-```
-
-```{r}
-table(predicted)
-```
-
-
-```{r}
-accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
-print(paste('Accuracy for test', accuracy_Test))
-```
 
 ## Neural networks
 
 ```{r}
-#install.packages("neuralnet")
 library(neuralnet)
 ```
 
@@ -371,11 +411,21 @@ ab = movie_idk[-index, ]
 train_ <- scaled[index, ]
 test_ <- scaled[-index, ]
 
-train_$imdb_num = as.factor(aa$imdb_num)
-test_$imdb_num = as.factor(ab$imdb_num)
+train_$imdb_num = as.numeric(as.factor(aa$imdb_num))
+test_$imdb_num = as.numeric(as.factor(ab$imdb_num))
 ```
 
 ```{r}
 NN = neuralnet(imdb_num ~ num_critic_for_reviews + duration + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes, data=train_, hidden = 2)
 plot(NN)
+```
+
+```{r}
+d = round(NN$net.result[[1]])
+cm = table(d, train_$imdb_num)
+cm
+```
+
+```{r}
+print(paste("Accuracy", sum(diag(cm)) / sum(cm)))
 ```
