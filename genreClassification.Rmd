@@ -1,6 +1,8 @@
 ---
 title: "Movie analysis and score prediction"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -204,7 +206,7 @@ mean(movie$duration)
 lang = movie %>%
         group_by(language) %>%
           summarise(n=n()) 
-list(lang[1])
+lang[order(-lang$n), ]
 ```
 
 ### Multiple Linear Regression - Variable Selection
@@ -419,6 +421,8 @@ test_$imdb_num = as.numeric(as.factor(ab$imdb_num))
 NN = neuralnet(imdb_num ~ num_critic_for_reviews + duration + director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes, data=train_, hidden = 2)
 plot(NN)
 ```
+
+![](nn.png)
 
 ```{r}
 d = round(NN$net.result[[1]])
