@@ -1,5 +1,5 @@
 ---
-title: "Movie analysis and score prediction"
+title: "Analysis and Prediction of Movie Performance"
 output:
   html_document: default
   pdf_document: default
@@ -15,9 +15,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ***
 
+The question of what makes a movie good has been asked for a while now. Quantifying the parameters on which a movie’s performance is one of the ways to predict how a movie would perform amongst others. Movie reviews are important because if they have a significant effect on the consumer thought processes, they can be used not only as a marketing tool by film production studios, but also as a predictor as to how a film will perform financially. We heavily rely on other people’s opinion and analysis to choose which movie to watch. The parameters on which the movie’s performance rely upon is dependent on duration of the movie, the critics reviews, the genre the movie is based on etc. 
+We aim to analyze the data and find the parameters which affect a movie’s performance. This will also help us understand how movies have changed throughout the years and across the world. We can also map those changes to historical incidents which would help us understand the consequence and affects the cinema has in our life.
+
 ***
 
-### Loading libraries
+### Loading the required libraries
 
 ```{r}
 library(ggplot2)
@@ -57,13 +60,12 @@ summary(movie$num_critic_for_reviews)
 
 ***
 
-According to this plot most movies have around 100 critic reviews   
+According to this plot most movies have around critic reviews in the range of 50-200 
 
 ***
 
 ```{r}
 ggplot(aes(x = imdb_score), data = movie) + geom_histogram(bins = 20, color = 'white') + ggtitle('Histogram of Scores')
-summary(movie$imdb_score)
 ```
 
 ***
@@ -90,16 +92,20 @@ title("IMDB score vs Title year")
 
 ***
 
-This plot tells us the variation of the IMDB scores over the years. The main point to be noted here is that there is a decrease in the average rating with increase in years
+This plot tells us the variation of the IMDB scores over the years. People are ready to give lower scores to movies and this also tells us about the quality of the movies that are being produced. Half a century ago there were only a few players in the movie production market but right now, with the increase of this medium we have seen lots of new producers and directors coming into this market which has led to gradual decrease in the quality of the product with relation to that product.
 
 ***
+
+### Plot of top 10 countries vs number of movies produced
 
 ```{r}
 country_group <- group_by(movie, country)
 movie_by_country <- summarise(country_group,
                                mean_score = mean(imdb_score),
-                               n = n()) 
-ggplot(aes(x = country, y = n, fill = country), data = movie_by_country) + geom_bar(stat = 'identity') + theme(legend.position = "none", axis.text=element_text(size=6)) +
+                               n = n())
+aa = movie_by_country[order(-movie_by_country$n), ] %>%
+        head(10)
+ggplot(aes(x = country, y = n, fill = country), data = aa) + geom_bar(stat = 'identity') + theme(legend.position = "none", axis.text=element_text(size=6)) +
   coord_flip() + ggtitle('Countries vs Number of Movies')
 ```
 
@@ -116,7 +122,7 @@ ggplot(aes(x = country, y = mean_score, fill = country), data = movie_by_country
 
 ***
 
-This is a plot of mean IMDB score of each country. Even though USA produced the highest number of movies, Libya has the highest average score.
+This is a plot of mean IMDB score of each country. Even though USA produced the highest number of movies, Libya has the highest average score. The difference in the average scores is in between 4 and 8.
 
 ***
 
@@ -217,6 +223,12 @@ movie_sub <- subset(movie, select = c(3, 4, 5, 8, 9, 13, 15, 22, 27, 28:53, 25))
 movie_sub
 ```
 
+***
+
+Only selecting numeric values for the regression model
+
+***
+
 ### Construct the model
 
 ```{r}
@@ -229,23 +241,27 @@ test_sample <- movie_sub[-train_index,]
 
 ### Fit the model 
 
-
 ```{r}
 fit <- lm(imdb_score ~ num_critic_for_reviews + duration +    director_facebook_likes + actor_1_facebook_likes + gross + cast_total_facebook_likes + facenumber_in_poster + budget + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=train_sample)
 summary(fit) 
 ```
 
+***
+
+Model with all the variables
+
+***
 
 ```{r}
-fit <- lm(imdb_score ~ num_critic_for_reviews + duration + budget +   director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=train_sample)
+fit <- lm(imdb_score ~ num_critic_for_reviews + duration +  director_facebook_likes + actor_1_facebook_likes +  cast_total_facebook_likes + facenumber_in_poster + Action + Thriller + Documentary + Animation + Comedy + Family + Mystery + Drama + Crime + Horror + War + Biography + Music, data=train_sample)
 summary(fit) 
 ```
 
-```{r}
-fit <- lm(imdb_score ~ num_critic_for_reviews + duration +   director_facebook_likes + actor_1_facebook_likes + cast_total_facebook_likes + facenumber_in_poster + movie_facebook_likes + Action + Adventure + Fantasy +  Thriller + Documentary + Romance + Animation + Comedy + Family + Musical +  Mystery + Western + Drama + History + Sport + Crime + Horror + War + Biography + Music + News + Short, data=train_sample)
-summary(fit) 
-```
+***
 
+Model with only the significant variables. The median for the residual error is close to 0 and the absolute minimum and maximum values are also close which means that the average residual error is approximately 0. The adjusted R-squared value is 0.29 which means the model can explain only 29% of the variation. 
+
+***
 
 ```{r}
 plot(fit)
@@ -262,10 +278,6 @@ train_sample$pred_score <- predict(fit, newdata = subset(train_sample, select=c(
 test_sample$pred_score <- predict(fit, newdata = subset(test_sample, select=c(imdb_score, num_critic_for_reviews, duration, director_facebook_likes, actor_1_facebook_likes, cast_total_facebook_likes, facenumber_in_poster, movie_facebook_likes, Action ,Adventure, Fantasy,Thriller, Documentary ,Romance ,Animation ,Comedy ,Family ,Musical ,Mystery, Western ,Drama ,History ,Sport ,Crime ,Horror,War ,Biography ,Music, News ,Short)))
 ```
 
-```{r}
-summary(fit)
-```
-
 ### Evaluating on train set
 
 ```{r}
@@ -275,18 +287,25 @@ train_mae <- round(mean(abs(train_sample$pred_score - train_sample$imdb_score)),
 c(train_corr^2, train_rmse, train_mae)
 ```
 
+***
+
+The predicted and the actual scores are not highly correlated.
+RMSE value is high which means the model doesn't fit the data well
+MAE is also high which is bad as the predicted imdb score values lie in 0-10 range
+
+***
+
 ### Evaluating on test set
 
 ```{r}
-test_corr <- round(cor(test_sample$pred_score, test_sample$imdb_score), 2)
 test_rmse <- round(sqrt(mean((test_sample$pred_score - test_sample$imdb_score)^2)), 2)
 test_mae <- round(mean(abs(test_sample$pred_score - test_sample$imdb_score)), 2)
-c(test_corr^2, test_rmse, test_mae)
+c(test_rmse, test_mae)
 ```
 
 ***
 
-For the rest of the models we have categorized the movies into three different categories (Low, Medium and High)
+Test set also has high RMSE and MAE values 
 
 ***
 
@@ -304,6 +323,12 @@ movie_sub_dectre$imdb_cat <- as.numeric(cut2(movie_sub$imdb_score, g=3))
 movie_sub_dectre$imdb_cat <- factor(x=movie_sub_dectre$imdb_cat, levels=sort(unique(movie_sub_dectre$imdb_cat)), labels = c("Low", "Medium", "High"))
 movie_sub_dectre
 ```
+
+***
+
+Distributing the scores into 3 different categories Low, Medium and High
+
+***
 
 ```{r}
 set.seed(123)
@@ -328,6 +353,12 @@ table_mat
 accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
 print(paste('Accuracy for test', accuracy_Test))
 ```
+
+***
+
+Accuracy of 54% was achieved on the test data using the decision tree classifier
+
+***
 
 ## Naive bayees using geners only
 
@@ -355,6 +386,12 @@ cm <- table(test_cl$imdb_cat, y_pred)
 cm
 print(paste("Accuracy", sum(diag(cm)) / sum(cm)))
 ```
+
+***
+
+Accuracy of 41% was achieved with Naive bayees classifier
+
+***
 
 ### KNN
 
@@ -385,6 +422,13 @@ cm
 misClassError <- mean(classifier_knn != test_sample$imdb_cat)
 print(paste('Accuracy =', 1-misClassError))
 ```
+
+***
+
+Accuracy of 42% was achieved with KNN classifier
+
+***
+
 
 ## Neural networks
 
@@ -433,3 +477,15 @@ cm
 ```{r}
 print(paste("Accuracy", sum(diag(cm)) / sum(cm)))
 ```
+
+***
+
+Accuracy of 40% was achieved using perceptron based neural network with 2 hidden layers
+
+***
+
+### Conclusion
+
+We were able to successfully analyze and interpret the IMDB movie dataset. With the help of some well written research papers, we were able to work upon interpreting the results on a higher level. We used multiple models to predict the scores which includes KNN, Neural networks, Regression, Naive Bayees, Decision trees. We also did exploratory analysis on the dataset which helped us come to conclusion on the overall trends of the movie market.
+
+
